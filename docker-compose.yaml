@@ -1,0 +1,10 @@
+services:
+  savebot:
+    image: ghcr.io/asd2003ru/savebot:latest
+    restart: unless-stopped
+    container_name: savebot
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./:/var/log/
+      #Path in local storage : Path in container (used in config.yaml)
+      - /var/services/homes:/var/services/homes

@@ -1,0 +1,11 @@
+Log:
+  LogFile: /var/log/botlog.log
+
+# Bot token xxxxx:xxxxxxxxx
+BotToken: "<bottoken>"
+
+# User and path for store files.
+# Bot create Telegram directory and save content her in subdirs (Documents, Images...).
+# format chat_id:fullpath
+Users:
+  xxxxxxx: /var/services/homes/user
