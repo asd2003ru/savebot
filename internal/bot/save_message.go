@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"savebot/internal/logger"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -24,6 +25,8 @@ const (
 )
 
 func (b *Bot) saveMessage(msg *tgbotapi.Message) error {
+
+	log := b.log.WithFields(logger.Fields{"chat_id": msg.Chat.ID, "from": msg.From.UserName, "message_id": msg.MessageID})
 
 	var fileID string
 	var filename string
@@ -80,32 +83,35 @@ func (b *Bot) saveMessage(msg *tgbotapi.Message) error {
 	}
 
 	if contentType == ContentTypeUnknown {
-
-		return fmt.Errorf("unknown content type")
+		log.Warn("Unknown or unsupported message type")
+		return fmt.Errorf("unknown or unsupported message type")
 	}
 
 	// Save media to disk
 	if contentType != ContentTypeText {
-		if err := b.saveFile(fileID, b.users[msg.From.ID], filename, contentType); err != nil {
-			b.log.Error().Err(err).Msgf("Failed to save image")
+		p, err := b.saveFile(fileID, b.users[msg.From.ID], filename, contentType)
+		if err != nil {
+			log.Error(err, "Failed to save image %s", filename)
 			return err
 		}
-		b.log.Info().Str("user", msg.From.UserName).Int64("chat_id", msg.Chat.ID).Msgf("Saved %s", filename)
+		log.Info("File saved %s", p)
 	}
 	// Save text
 	if contentType == ContentTypeText || contentType == ContentTypeMixed {
-		if err := b.saveTextMsg(msg, filename); err != nil {
-			b.log.Error().Err(err).Msgf("Failed to save text")
+		p, err := b.saveTextMsg(msg, filename)
+		if err != nil {
+			log.Error(err, "Failed to save text message")
 			return err
 		}
-		b.log.Info().Str("user", msg.From.UserName).Int64("chat_id", msg.Chat.ID).Msgf("Saved %s", filename)
+		log.Info("Text saved to file %s", p)
 	}
 
 	return nil
 }
 
 // Save attachment to disk
-func (b *Bot) saveFile(fileID string, filepath, filename string, contentType ContentType) error {
+// Returns full path
+func (b *Bot) saveFile(fileID string, filepath, filename string, contentType ContentType) (string, error) {
 	fileConfig := tgbotapi.FileConfig{FileID: fileID}
 	file, _ := b.api.GetFile(fileConfig)
 	fileURL := file.Link(b.api.Token)
@@ -113,8 +119,8 @@ func (b *Bot) saveFile(fileID string, filepath, filename string, contentType Con
 	// Download
 	resp, err := http.Get(fileURL)
 	if err != nil {
-		b.log.Error().Err(err).Msgf("Failed to download %s", fileURL)
-		return err
+		b.log.Error(err, "Failed to download file %s", fileURL)
+		return "", err
 	}
 	defer resp.Body.Close()
 
@@ -136,22 +142,22 @@ func (b *Bot) saveFile(fileID string, filepath, filename string, contentType Con
 	}
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		b.log.Error().Err(err).Msgf("Failed to create directory")
-		return err
+		b.log.Error(err, "Failed to create directory %s", dir)
+		return "", err
 	}
 
 	fullpath := path.Join(dir, filename)
 	outFile, err := os.Create(fullpath)
 	if err != nil {
-		b.log.Error().Err(err).Msgf("Failed to create file %s", fullpath)
-		return err
+		b.log.Error(err, "Failed to create file %s", fullpath)
+		return "", err
 	}
 	defer outFile.Close()
 
 	if _, err := io.Copy(outFile, resp.Body); err != nil {
-		b.log.Error().Err(err).Msgf("Failed to save data")
-		return err
+		b.log.Error(err, "Failed save data to file %s", fullpath)
+		return "", err
 	}
 
-	return nil
+	return fullpath, nil
 }

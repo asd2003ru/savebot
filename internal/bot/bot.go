@@ -2,26 +2,26 @@ package bot
 
 import (
 	"context"
+	"savebot/internal/logger"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/rs/zerolog"
 )
 
 type Bot struct {
 	api   *tgbotapi.BotAPI
-	log   zerolog.Logger
+	log   logger.ILogger
 	users map[int64]string // Map of user IDs to usernames
 }
 
 // NewBot creates a new instance of the bot with the provided configuration, database, and file server
-func NewBot(users map[int64]string, token string, log *zerolog.Logger) (*Bot, error) {
+func NewBot(users map[int64]string, token string, log logger.ILogger) (*Bot, error) {
 	botAPI, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
 	}
 	botAPI.Debug = false
 	return &Bot{
-		log:   log.With().Str("component", "bot").Logger(),
+		log:   log.WithFields(logger.Fields{"bot": botAPI.Self.UserName}),
 		api:   botAPI,
 		users: users,
 	}, nil
@@ -34,7 +34,7 @@ func (b *Bot) Start(ctx context.Context) error {
 	u.Timeout = 60
 	updates := b.api.GetUpdatesChan(u)
 
-	b.log.Info().Msgf("Bot %s started", b.api.Self.UserName)
+	b.log.Info("Bot wait for messages.")
 
 	for {
 		select {

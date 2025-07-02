@@ -13,21 +13,21 @@ import (
 
 const textFileDir = "Text"
 
-func (b *Bot) saveTextMsg(msg *tgbotapi.Message, mediaFile string) error {
+func (b *Bot) saveTextMsg(msg *tgbotapi.Message, mediaFile string) (string, error) {
 
 	if msg.Caption == "" && msg.Text == "" {
-		return nil
+		return "", nil
 	}
 
 	dir := path.Join(b.users[msg.From.ID], textFileDir)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
+		return "", err
 	}
 
 	fullpath := path.Join(dir, time.Now().Format("20060102_150405")+".md")
 	f, err := os.Create(fullpath)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer f.Close()
 
@@ -60,6 +60,6 @@ func (b *Bot) saveTextMsg(msg *tgbotapi.Message, mediaFile string) error {
 	}
 
 	_, err = f.WriteString(content.String())
-	return err
+	return fullpath, err
 
 }

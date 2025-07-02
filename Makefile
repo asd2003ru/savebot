@@ -15,10 +15,6 @@ all: build
 build:
 	CGO_ENABLED=$(CGO_ENABLED) go build $(GO_BUILD_FLAGS) -o $(BIN_PATH) ./cmd/savebot
 
-# Run target
-.PHONY: run
-run: build
-	go run ./cmd/savebot/main.go -c debug/config.yaml
 
 .PHONY: clean
 clean:
