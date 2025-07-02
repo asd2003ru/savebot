@@ -1,5 +1,3 @@
-Log:
-  LogFile: /var/log/botlog.log
 
 # Bot token xxxxx:xxxxxxxxx
 BotToken: "<bottoken>"

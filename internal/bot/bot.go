@@ -21,7 +21,7 @@ func NewBot(users map[int64]string, token string, log logger.ILogger) (*Bot, err
 	}
 	botAPI.Debug = false
 	return &Bot{
-		log:   log.WithFields(logger.Fields{"bot": botAPI.Self.UserName}),
+		log:   log,
 		api:   botAPI,
 		users: users,
 	}, nil
@@ -34,7 +34,7 @@ func (b *Bot) Start(ctx context.Context) error {
 	u.Timeout = 60
 	updates := b.api.GetUpdatesChan(u)
 
-	b.log.Info("Bot wait for messages.")
+	b.log.Info("Bot @%s started, wait for messages.", b.api.Self.UserName)
 
 	for {
 		select {

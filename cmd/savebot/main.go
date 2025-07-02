@@ -9,6 +9,12 @@ import (
 	"savebot/internal/logger"
 )
 
+var (
+	version = "dev" // default value; will be overwritten during build
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 
 	log := logger.NewLogger(logger.JSONType, logger.InfoLevel)
@@ -21,6 +27,7 @@ func main() {
 
 	// Graceful shutdown handling
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	log.Info("Bot started (version %s, commit %s, date %s)", version, commit, date)
 	if err := app.Run(ctx, log, cfg); err != nil {
 		log.Error(err, "Failed to run bot")
 		stop()

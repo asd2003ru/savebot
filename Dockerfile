@@ -12,8 +12,19 @@ RUN go mod download
 # Copy the source code
 COPY . .
 
+# Optional: Set build args
+ARG VERSION
+ARG COMMIT
+ARG DATE
+
 # Build the Go application
-RUN CGO_ENABLED=0 GOOS=linux go build -o ./savebot cmd/savebot/main.go
+RUN # Get commit hash if VERSION is not passed
+RUN if [ -z "$VERSION" ]; then \
+    VERSION=$$(git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null || git rev-parse --short HEAD); \
+    fi && \
+    COMMIT=$$(git rev-parse --short HEAD) && \
+    DATE=$$(date +%Y-%m-%d) && \
+    CGO_ENABLED=0 GOOS=linux go build -o -ldflags "-X 'main.version=$$VERSION' -X 'main.commit=$$COMMIT' -X 'main.date=$$DATE'" ./savebot cmd/savebot/main.go
 
 # Stage 2: Final stage
 FROM alpine:edge
