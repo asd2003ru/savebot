@@ -17,7 +17,7 @@ var (
 
 func main() {
 
-	log := logger.NewLogger(logger.JSONType, logger.InfoLevel)
+	log := logger.NewLogger(logger.TextType, logger.InfoLevel)
 
 	log.Info("Bot started (version %s, commit %s, date %s)", version, commit, date)
 
