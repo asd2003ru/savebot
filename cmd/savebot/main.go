@@ -19,6 +19,8 @@ func main() {
 
 	log := logger.NewLogger(logger.JSONType, logger.InfoLevel)
 
+	log.Info("Bot started (version %s, commit %s, date %s)", version, commit, date)
+
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Error(err, "Failed to read config")
@@ -27,7 +29,7 @@ func main() {
 
 	// Graceful shutdown handling
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	log.Info("Bot started (version %s, commit %s, date %s)", version, commit, date)
+
 	if err := app.Run(ctx, log, cfg); err != nil {
 		log.Error(err, "Failed to run bot")
 		stop()
