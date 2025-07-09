@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"savebot/internal/logger"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -91,7 +92,7 @@ func (b *Bot) saveMessage(msg *tgbotapi.Message) error {
 	if contentType != ContentTypeText {
 		p, err := b.saveFile(fileID, b.users[msg.From.ID], filename, contentType)
 		if err != nil {
-			log.Error(err, "Failed to save image %s", filename)
+			log.Error(err, "Failed to save %s", filename)
 			return err
 		}
 		log.Info("File saved %s", p)
@@ -113,32 +114,52 @@ func (b *Bot) saveMessage(msg *tgbotapi.Message) error {
 // Returns full path
 func (b *Bot) saveFile(fileID string, filepath, filename string, contentType ContentType) (string, error) {
 	fileConfig := tgbotapi.FileConfig{FileID: fileID}
-	file, _ := b.api.GetFile(fileConfig)
+	file, err := b.api.GetFile(fileConfig)
+	if err != nil {
+		b.log.Error(err, "Failed to get file %s", fileID)
+		return "", err
+	}
 	fileURL := file.Link(b.api.Token)
+	u, err := b.api.GetFileDirectURL(fileID)
+	if err != nil {
+		b.log.Error(err, "Failed to get file %s", fileID)
+		return "", err
+	}
+	fileURL = u
 
 	// Download
 	resp, err := http.Get(fileURL)
-	if err != nil {
-		b.log.Error(err, "Failed to download file %s", fileURL)
-		return "", err
+	if err != nil || resp.StatusCode != http.StatusOK {
+		b.log.Error(err, "Failed to download file %s status code %d", fileURL, resp.StatusCode)
+		return "", fmt.Errorf("failed to download file %s status code %d", fileURL, resp.StatusCode)
 	}
 	defer resp.Body.Close()
+
+	// Filename may be empty
+	if filename == "" {
+		filename = time.Now().Format("20060102_150405")
+	}
 
 	// Directory by type
 	var dir string
 	switch contentType {
 	case ContentTypeImage:
 		dir = path.Join(filepath, "Images")
+		filename = filename + ".jpg"
 	case ContentTypeDocument:
 		dir = path.Join(filepath, "Documents")
 	case ContentTypeAudio:
 		dir = path.Join(filepath, "Audio")
+		filename = filename + ".ogg"
 	case ContentTypeVideo:
 		dir = path.Join(filepath, "Video")
+		filename = filename + ".mp4"
 	case ContentTypeVoice:
 		dir = path.Join(filepath, "Voice")
+		filename = filename + ".ogg"
 	case ContentTypeMixed:
 		dir = path.Join(filepath, "Text", "media")
+
 	}
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
